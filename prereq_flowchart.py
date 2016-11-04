@@ -25,20 +25,26 @@ def create_flowchart(major):
 
         course_description = row.find('p', {'class': 'courseblockdesc'})
 
-        if 'Prerequisite: ' in course_description.text:
+        if 'Prerequisite:' in course_description.text:
             # gets a string of the pre-reqs (the description in english)
-            pre_requisites = course_description.text.split('Prerequisite: ')[1]
+            pre_requisites = BeautifulSoup(course_description.prettify().split('Prerequisite:')[1], 'html.parser')
 
-            # gets each course referenced in the course description, and appends it to the dictionary
-            # if it is in the pre-req section
-            for pre_req in course_description.find_all('a', {'class:', 'bubblelink code'}):
-                for pre_req_block in pre_requisites.split('; '):
-                    # if " or " in pre_req_block.lower() or "one of " in pre_req_block.lower():
-                    print pre_req_block
-                if pre_req.text in pre_requisites:
-                    courses[course_title[0]].append(str(pre_req.text.replace(u'\xa0', u' ')))
+            # splits up the pre-reqs into groups that include "or" or "one of"
+            # e.g., multiple courses that all satisfy a single pre-req
+            for pre_req_block in pre_requisites.prettify().split('; '):
+                block_soup = BeautifulSoup(pre_req_block, 'html.parser')
 
-            # TODO: account for 'or' pre-reqs (and 'One of')
+                # list of pre-reqs that all satisfy the same requirement
+                block_pre_reqs = []
+
+                # gets each course referenced in each "or" block of the course description,
+                # and appends it to a list of pre-reqs in that block
+                for pre_req in block_soup.find_all('a', {'class:', 'bubblelink code'}):
+                    block_pre_reqs.append(pre_req.text.replace(u'\xa0', u' ').strip())
+
+                # appends that list to the dictionary
+                courses[course_title[0]].append(block_pre_reqs)
+
             # TODO: account for concurrent
     print courses
 
